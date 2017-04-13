@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace AbstractFactory.Properties
+namespace AbstractFactoryLab.Properties
 {
 
 
