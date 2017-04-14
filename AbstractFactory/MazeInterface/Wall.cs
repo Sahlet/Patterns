@@ -5,14 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace MazeInterface {
-    public enum WallType { type1, type2, type3 }
+    public enum WallType { Default, Type2, Type3 }
 
     public class WallData {
         public bool vertical;
         public DoorData doorData;
         public WallType type;
         public WallData() { }
-        public WallData(bool vertical, DoorData doorData = null, WallType type = WallType.type1) {
+        public WallData(bool vertical = false, DoorData doorData = null, WallType type = WallType.Default) {
             this.vertical = vertical;
             this.doorData = doorData;
             this.type = type;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Drawing;
 
 namespace MazeInterface {
 
@@ -12,7 +13,7 @@ namespace MazeInterface {
     }
 
     interface Maze {
-        System.Drawing.Size Size {
+        Size MazeSize {
             get;
             set;
         }

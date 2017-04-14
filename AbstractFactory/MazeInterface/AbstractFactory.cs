@@ -8,7 +8,7 @@ namespace MazeInterface {
 
     abstract class AbstractFactory {
         public abstract Maze createMaze();
-        public abstract Wall createWall(WallType type = WallType.type1);
+        public abstract Wall createWall(WallType type = WallType.Default);
         public abstract Door createDoor();
 
         public abstract void drawMaze(Maze maze);
@@ -17,7 +17,7 @@ namespace MazeInterface {
             if (data == null || data.walls == null) return null;
             var maze = createMaze();
 
-            maze.Size = new System.Drawing.Size(data.walls.GetLength(0), data.walls.GetLength(1));
+            maze.MazeSize = new System.Drawing.Size(data.walls.GetLength(0), data.walls.GetLength(1));
 
             for (int i = 0; i < data.walls.GetLength(0); i++) {
                 for (int j = 0; j < data.walls.GetLength(1); j++) {

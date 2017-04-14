@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MazeInterface;
 using MazeImplementation1;
+using System.Windows.Forms;
 
 namespace AbstractFactoryLab {
 
@@ -25,6 +26,16 @@ namespace AbstractFactoryLab {
                 { horwallwopend1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, _____null_____ },
                 { verwallnodoor1, verwallwopend1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1, verwallnodoor1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1 },
                 { horwallwopend1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, _____null_____ },
+                { horwallwopend1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, _____null_____ },
+                { verwallnodoor1, verwallwopend1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1, verwallnodoor1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1 },
+                { verwallnodoor1, verwallwopend1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1, verwallnodoor1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1 },
+                { horwallwopend1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, _____null_____ },
+                { verwallnodoor1, verwallwopend1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1, verwallnodoor1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1 },
+                { horwallwopend1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, _____null_____ },
+                { verwallnodoor1, verwallwopend1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1, verwallnodoor1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1 },
+                { horwallwopend1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, _____null_____ },
+                { verwallnodoor1, verwallwopend1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1, verwallnodoor1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1 },
+                { horwallwopend1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, horwallwopend1, horwallnodoor1, _____null_____ },
                 { verwallnodoor1, verwallwopend1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1, verwallnodoor1, verwallnodoor1, verwallwopend1, verwallwopend1, verwallnodoor1 },
                 { horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallnodoor1, horwallnodoor1, _____null_____ }
             });
@@ -33,12 +44,11 @@ namespace AbstractFactoryLab {
         [STAThread]
         static void Main() {
 
+            AbstractFactory factory = new Factory1();
+
             MazeData[] Mazes = { getMazeData1() };
 
-
-            AbstractFactory factory = new Factory1();
-                var maze = factory.createMaze(Mazes[0]);
-                factory.drawMaze(maze);
-            }
+            factory.drawMaze(factory.createMaze(Mazes[0]));
+        }
     }
 }
