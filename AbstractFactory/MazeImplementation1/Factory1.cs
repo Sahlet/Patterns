@@ -318,7 +318,8 @@ namespace MazeImplementation1
                 p1.Click += on_click;
                 p2.Click += on_click;
                 //String PicturePath = @"D:\Книги\Прога\Даша\8 семестр\Patterns\AbstractFactory\MazeImplementation1\note.png";
-                String PicturePath = @"\\Mac\Home\Downloads\Patterns-master\AbstractFactory\MazeImplementation1\note.png";
+                //String PicturePath = @"\\Mac\Home\Downloads\Patterns-master\AbstractFactory\MazeImplementation1\note.png";
+                String PicturePath = @"note.png";
 
                 pic1.Click += on_click;
                 pic2.Click += on_click;
