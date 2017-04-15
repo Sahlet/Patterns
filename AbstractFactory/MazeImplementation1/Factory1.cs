@@ -352,7 +352,7 @@ namespace MazeImplementation1
                 this.Opacity = 0;
             }
 
-            public Size MazeSize {
+            public virtual Size MazeSize {
                 get { return mazeSize; }
                 set {
                     if (mazeSize == value) return;
@@ -370,7 +370,7 @@ namespace MazeImplementation1
                 }
             }
 
-            public Wall this[int row, int column] {
+            public virtual Wall this[int row, int column] {
                 get { return walls[row, column]; }
                 set {
                     Wall1 old_wall = walls[row, column];
@@ -394,98 +394,101 @@ namespace MazeImplementation1
                 }
             }
         }
-
-        private class Maze2 : PictureBox, Maze {
+        private class Maze2 : Maze1 {
             private Point startP;
-            private Maze1 maze;
+            private Point posShift = new Point(50, 50);
+            private Button clearButton;
 
-            public Size MazeSize {
-                get { return maze.MazeSize; }
-                set { maze.MazeSize = value; }
+            public override Size MazeSize {
+                get { return base.MazeSize; }
+                set {
+                    base.MazeSize = value;
+                    this.Size = new Size(this.Size.Width + posShift.X, this.Size.Height + posShift.Y);
+
+                    if (clearButton.Parent != this) this.Controls.Add(clearButton);
+                }
             }
 
-            public Wall this[int row, int column] {
-                get { return maze[row, column]; }
-                set { maze[row, column] = value; }
+            public override Wall this[int row, int column] {
+                get { return base[row, column]; }
+                set {
+                    var old = base[row, column];
+                    if (old == value) return;
+                    base[row, column] = value;
+
+                    Control ctrl_value = (value as Control);
+                    if (ctrl_value == null) return;
+
+                    ctrl_value.Location = new Point(
+                        ctrl_value.Location.X + posShift.X,
+                        ctrl_value.Location.Y + posShift.Y
+                    );
+
+                    ctrl_value.MouseDown += mouseDown;
+                    ctrl_value.MouseMove += mouseMove;
+                }
             }
 
             public Maze2() {
-                this.Padding = new Padding(0);
-
-                clear();
-
                 this.MouseMove += mouseMove;
                 this.MouseDown += mouseDown;
+                this.SizeChanged += sizeChanged;
 
-                maze = new Maze1();
-                maze.SizeChanged += sizeChanged;
-                maze.MouseDown += mouseDown;
-                maze.MouseMove += mouseMove;
-
-                Button clearButton = new Button();
+                clearButton = new Button();
                 clearButton.Text = "Clear";
                 clearButton.Click += clearClick;
-                clearButton.Margin = new Padding(20);
-                clearButton.Location = new Point(20, 20);
+                clearButton.Location = new Point(15, 15);
 
-                maze.Location = new Point(2 * clearButton.Location.X + clearButton.Size.Width, 2 * clearButton.Location.Y + clearButton.Size.Height);
-
-                this.Controls.Add(maze);
                 this.Controls.Add(clearButton);
             }
 
             private void mouseDown(object sender, MouseEventArgs e) {
+                if (clearButton.Parent == this) {
+                    int i = 0;
+                }
+
+                Control ctrl_sender = (sender as Control);
+                if (sender == null) return;
+
                 Point offset = new Point();
-                if (sender == maze) {
-                    offset = maze.Location;
+                if (ctrl_sender != this) {
+                    offset = ctrl_sender.Location;
                 }
 
                 startP = new Point(e.X + offset.X, e.Y + offset.Y);
             }
-
             private void mouseMove(object sender, MouseEventArgs e) {
                 if (e.Button == MouseButtons.Left) {
+                    Control ctrl_sender = (sender as Control);
+                    if (sender == null) return;
+
                     Point offset = new Point();
-                    if (sender == maze) {
-                        offset = maze.Location;
+                    if (ctrl_sender != this) {
+                        offset = ctrl_sender.Location;
                     }
                     Point endP = new Point(e.X + offset.X, e.Y + offset.Y);
-                    Bitmap image = (Bitmap)this.Image;
-                    using (Graphics g = Graphics.FromImage(image)) {
-                        g.DrawLine(new Pen(Color.BlueViolet), startP, endP);
-                    }
-                    this.Image = image;
+
+                    Graphics g = this.CreateGraphics();
+                    g.DrawLine(new Pen(Color.BlueViolet), startP, endP);
+
                     startP = endP;
                     this.Invalidate();
                 }
             }
 
-            private void resize_image() {
-                if (this.Image.Width < this.Width || this.Image.Height < this.Height) {
-                    Bitmap image = new Bitmap(Math.Max(this.Image.Width, this.Width), Math.Max(this.Image.Height, this.Height));
-
-                    using (Graphics g = Graphics.FromImage(image)) {
-                        g.DrawImage(this.Image, 0, 0);
-                    }
-
-                    this.Image = image;
-                }
-            }
-
             private void clear() {
-                this.Image = new Bitmap(this.Width, this.Height);
+                this.CreateGraphics().Clear(this.BackColor);
             }
 
             private void sizeChanged(object sender, EventArgs e) {
-                this.Size = new Size(maze.Location.X + maze.Size.Width, maze.Location.Y + maze.Size.Height);
-                resize_image();
+                clear();
             }
             private void clearClick(object sender, EventArgs e){
                 clear();
             }
         }
 
-        public override Maze createMaze() { return new Maze1(); }
+        public override Maze createMaze() { return new Maze2(); }
 
         public override Wall createWall(WallType type) {
             if (type == WallType.Type2) return new Wall2();
