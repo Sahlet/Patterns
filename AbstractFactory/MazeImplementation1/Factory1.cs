@@ -11,7 +11,128 @@ namespace MazeImplementation1
 {
     class Factory1 : MazeInterface.AbstractFactory {
 
-        class Door1 : Control, Door {
+        public class TranspCtrl : Control {
+            public bool drag = false;
+            public bool enab = false;
+            private int m_opacity = 100;
+
+            private int alpha;
+            public TranspCtrl()
+            {
+                SetStyle(ControlStyles.SupportsTransparentBackColor, true);
+                SetStyle(ControlStyles.Opaque, true);
+                this.BackColor = Color.Transparent;
+            }
+
+            public int Opacity
+            {
+                get
+                {
+                    if (m_opacity > 100)
+                    {
+                        m_opacity = 100;
+                    }
+                    else if (m_opacity < 1)
+                    {
+                        m_opacity = 1;
+                    }
+                    return this.m_opacity;
+                }
+                set
+                {
+                    this.m_opacity = value;
+                    if (this.Parent != null)
+                    {
+                        Parent.Invalidate(this.Bounds, true);
+                    }
+                }
+            }
+
+            protected override CreateParams CreateParams
+            {
+                get
+                {
+                    CreateParams cp = base.CreateParams;
+                    cp.ExStyle = cp.ExStyle | 0x20;
+                    return cp;
+                }
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                Graphics g = e.Graphics;
+                Rectangle bounds = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
+
+                Color frmColor = this.Parent.BackColor;
+                Brush bckColor = default(Brush);
+
+                alpha = (m_opacity * 255) / 100;
+
+                if (drag)
+                {
+                    Color dragBckColor = default(Color);
+
+                    if (BackColor != Color.Transparent)
+                    {
+                        int Rb = BackColor.R * alpha / 255 + frmColor.R * (255 - alpha) / 255;
+                        int Gb = BackColor.G * alpha / 255 + frmColor.G * (255 - alpha) / 255;
+                        int Bb = BackColor.B * alpha / 255 + frmColor.B * (255 - alpha) / 255;
+                        dragBckColor = Color.FromArgb(Rb, Gb, Bb);
+                    }
+                    else
+                    {
+                        dragBckColor = frmColor;
+                    }
+
+                    alpha = 255;
+                    bckColor = new SolidBrush(Color.FromArgb(alpha, dragBckColor));
+                }
+                else
+                {
+                    bckColor = new SolidBrush(Color.FromArgb(alpha, this.BackColor));
+                }
+
+                if (this.BackColor != Color.Transparent | drag)
+                {
+                    g.FillRectangle(bckColor, bounds);
+                }
+
+                bckColor.Dispose();
+                g.Dispose();
+                base.OnPaint(e);
+            }
+
+            protected override void OnBackColorChanged(EventArgs e)
+            {
+                if (this.Parent != null)
+                {
+                    Parent.Invalidate(this.Bounds, true);
+                }
+                base.OnBackColorChanged(e);
+            }
+
+            protected override void OnParentBackColorChanged(EventArgs e)
+            {
+                this.Invalidate();
+                base.OnParentBackColorChanged(e);
+            }
+        }
+
+        public class ControlWithBorder : Control {
+            public ControlWithBorder() {
+                SetStyle(ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.DoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+            }
+
+            public Pen BorderPen = Pens.Black;
+
+            protected override void OnPaint(PaintEventArgs e) {
+                using (SolidBrush brush = new SolidBrush(BackColor)) e.Graphics.FillRectangle(brush, ClientRectangle);
+                e.Graphics.DrawRectangle(BorderPen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
+            }
+
+        }
+
+        private class Door1 : Control, Door {
             private bool locked;
             public bool Locked {
                 get { return locked; }
@@ -39,15 +160,14 @@ namespace MazeImplementation1
             }
 
             public Door1() {
+                this.Padding = new Padding(0);
+
                 this.Controls.Add(p1);
                 this.Controls.Add(p2);
 
-                var handler = new EventHandler(on_click);
-                this.Click += handler;
-                p1.Click += handler;
-                p2.Click += handler;
-
-                this.BackColor = Color.Transparent;
+                this.Click += on_click;
+                p1.Click += on_click;
+                p2.Click += on_click;
 
                 state_changed();
             }
@@ -61,21 +181,22 @@ namespace MazeImplementation1
                 } else {
                     p1.Dock = vertical ? DockStyle.Top : DockStyle.Left;
                     p2.Dock = vertical ? DockStyle.Bottom : DockStyle.Right;
-                    p1.Size = p2.Size = new Size(vertical ? 0 : 5, vertical ? 5 : 0);
+                    Size pSize = new Size(0, 5);
+                    p1.Size = p2.Size = vertical ? pSize : new Size(pSize.Height, pSize.Width);
                 }
             }
         }
 
-        private class Wall1 : Control, Wall {
-            public static Size getWallSize() { return new Size(10, 60); }
+        private class Wall1 : TranspCtrl, Wall {
+            public static Size getWallSize() { return new Size(10, 44); }
+            public static Size getDoorSize() { return new Size(12, 16); }
 
             private bool vertical;
-            public bool Vertical {
+            public virtual bool Vertical {
                 get { return vertical; }
                 set {
                     if (vertical == value) return;
                     vertical = value;
-                    if (door != null) door.Vertical = vertical;
                     state_changed();
                 }
             }
@@ -99,12 +220,10 @@ namespace MazeImplementation1
                         this.Controls.Remove(door);
 
                         door = new_door;
-
-                        this.Controls.Add(door);
                     }
 
-                    door.Size = new Size(20, 20);
-                    door.Margin = new Padding((this.Size.Width - door.Size.Width) / 2, (this.Size.Height - door.Size.Height) / 2, 0, 0);
+                    this.Controls.Add(door);
+                    door.BringToFront();
 
                     state_changed();
                 }
@@ -115,92 +234,139 @@ namespace MazeImplementation1
                 get { return get_type(); }
             }
 
-            protected Control p1 = new Control(), p2 = new Control();
+            protected ControlWithBorder p1 = new ControlWithBorder(), p2 = new ControlWithBorder();
 
             public Wall1() {
                 this.Size = new Size(getWallSize().Height, getWallSize().Height);
 
+                this.Padding = new Padding(0);
+
                 this.Controls.Add(p1);
                 this.Controls.Add(p2);
 
-                this.BackColor = Color.Transparent;
+                this.Opacity = 0;
 
-                //p1.BackColor = p2.BackColor = Color.;
+                p1.BackColor = p2.BackColor = Color.DeepPink;
 
                 state_changed();
             }
 
             private void state_changed() {
-                var wallSize = getWallSize();
-                wallSize = new Size(wallSize.Width, (door == null) ? wallSize.Height : ((wallSize.Height - door.Height) / 2));
 
-                p1.MaximumSize = p1.Size = vertical ? wallSize : new Size(wallSize.Height, wallSize.Width);
+                var wallSize = getWallSize();
+
+                if (door != null) {
+                    door.Vertical = vertical;
+                    Size doorSize = getDoorSize();
+                    door.Size = vertical ? doorSize : new Size(doorSize.Height, doorSize.Width);
+
+                    Point doorPos = new Point((this.Size.Width - doorSize.Width) / 2, (this.Size.Height - doorSize.Height) / 2);
+                    door.Location = vertical ? doorPos : new Point(doorPos.Y, doorPos.X);
+
+                    wallSize = new Size(wallSize.Width, doorPos.Y);
+                }
+
+                p1.Size = vertical ? wallSize : new Size(wallSize.Height, wallSize.Width);
+
+                Point p1Pos = new Point((this.Size.Width - wallSize.Width) / 2, 0);
+                p1.Location = vertical ? p1Pos : new Point(p1Pos.Y, p1Pos.X);
 
                 if (door == null) {
-                    p1.Dock = DockStyle.Fill;
-                    p2.Dock = DockStyle.None;
-                    p2.MaximumSize = p2.Size = new Size(0, 0);
+                    p2.Size = new Size(0, 0);
                 } else {
-                    p1.Dock = vertical ? DockStyle.Top : DockStyle.Left;
-                    p2.Dock = vertical ? DockStyle.Bottom : DockStyle.Right;
-                    p2.MaximumSize = p2.Size = p1.Size;
+                    p2.Size = p1.Size;
+                    Point p2Pos = new Point(p1Pos.X, this.Size.Height - wallSize.Height);
+                    p2.Location = vertical ? p2Pos : new Point(p2Pos.Y, p2Pos.X);
                 }
             }
         }
-        private class Wall1T2 : Wall1 {
-            static Color[] colors = { Color.Azure, Color.Blue, Color.Chocolate, Color.Green, Color.Gray, Color.Gold };
-            static Random rnd = new Random();
+        private class Wall2 : Wall1 {
+            static Color[] colors = { Color.Aqua, Color.Blue, Color.Chocolate, Color.Green, Color.Gray, Color.Gold };
+            static Random rnd = new Random(DateTime.Now.Millisecond);
 
-            private void on_click(Object Sender, EventArgs e) {
-                p1.BackColor = p2.BackColor = colors[rnd.Next() % colors.Length];
+            protected void on_click(Object Sender, EventArgs e) {
+                Color res;
+                do {
+                    res = colors[rnd.Next() % colors.Length];
+                } while (res == p1.BackColor);
+                p1.BackColor = p2.BackColor = res;
             }
 
-            public Wall1T2() {
-                p1.BackColor = p2.BackColor = Color.Aqua;
+            public Wall2() {
+                p1.BackColor = p2.BackColor = colors[rnd.Next() % colors.Length];
                 p1.Click += on_click;
                 p2.Click += on_click;
             }
         }
+        private class Wall3 : Wall1 {
+            private PictureBox pic1 = new PictureBox();
+            private PictureBox pic2 = new PictureBox();
 
-        private class Wall1T3 : Wall1 {
+            protected void on_click(Object Sender, EventArgs e) {
+                System.Media.SystemSounds.Beep.Play();
+            }
 
+            public override bool Vertical {
+                get { return base.Vertical; }
+                set {
+                    base.Vertical = value;
+                    pic1.Location = pic2.Location = new Point(base.Vertical ? 1 : 3, base.Vertical ? 1 : -1);
+                }
+            }
+
+            public Wall3() {
+                p1.Click += on_click;
+                p2.Click += on_click;
+                String PicturePath = @"D:\Книги\Прога\Даша\8 семестр\Patterns\AbstractFactory\MazeImplementation1\note.png";
+
+                pic1.Click += on_click;
+                pic2.Click += on_click;
+                Image note = Image.FromFile(PicturePath);
+                pic1.Image = pic2.Image = note;
+                pic1.Size = pic1.MaximumSize = pic2.Size = pic2.MaximumSize = note.Size;
+                pic1.Location = pic2.Location = new Point(1, -1);
+
+                p1.Controls.Add(pic1);
+                p2.Controls.Add(pic2);
+            }
         }
 
-        private class Maze1 : Control, Maze {
+        private class Maze1 : TranspCtrl, Maze {
             private System.Drawing.Size mazeSize;
             private Wall1[,] walls;
 
-            private void clear() {
-                walls = new Wall1[0, 0];
-                mazeSize = new Size(0, 0);
-                this.Controls.Clear();
-            }
-
-            public static Padding get_margin(int row, int column) {
-                Padding margin = new Padding();
+            public static Point getPos(int row, int column) {
+                Point pos = new Point();
                 int row_rest_by_2 = (row % 2);
                 int leftShift = ((1 - row_rest_by_2) * Wall1.getWallSize().Height / 2);
                 int topShift = -row_rest_by_2 * (Wall1.getWallSize().Height + Wall1.getWallSize().Width) / 2;
-                margin.Left = column * Wall1.getWallSize().Height + leftShift;
-                margin.Top = row * (Wall1.getWallSize().Height + Wall1.getWallSize().Width) + topShift;
-                return margin;
+                pos.X = column * Wall1.getWallSize().Height + leftShift;
+                pos.Y = ((row + 1)/2) * (Wall1.getWallSize().Height + Wall1.getWallSize().Width) + topShift;
+                return pos;
             }
 
             public Maze1() {
-                this.AutoSize = true;
-                this.SetAutoSizeMode(AutoSizeMode.GrowAndShrink);
-                //SetStyle(ControlStyles.SupportsTransparentBackColor, true);
-                //SetStyle(ControlStyles.Opaque, false);
-                this.BackColor = Color.Transparent;
-                clear();
+                this.Padding = new Padding(0);
+                mazeSize = new Size(0, 0);
+                walls = new Wall1[0, 0];
+                this.Opacity = 0;
             }
 
             public Size MazeSize {
                 get { return mazeSize; }
                 set {
                     if (mazeSize == value) return;
+                    this.Controls.Clear();
                     mazeSize = value;
-                    clear();
+                    walls = new Wall1[mazeSize.Width, mazeSize.Height];
+
+                    if (mazeSize.Width == 0 || mazeSize.Height == 0) {
+                        Size = new Size(0, 0);
+                        return;
+                    }
+
+                    var pos_for_the_last = getPos(mazeSize.Width - 1, mazeSize.Height - 1);
+                    Size = new Size(pos_for_the_last.X + Wall1.getWallSize().Height, pos_for_the_last.Y + Wall1.getWallSize().Height);
                 }
             }
 
@@ -221,7 +387,7 @@ namespace MazeImplementation1
                     if (wall == null) throw new Exception("value is not Wall1 entity");
 
                     walls[row, column] = wall;
-                    wall.Margin = get_margin(row, column);
+                    wall.Location = getPos(row, column);
 
                     this.Controls.Remove(old_wall);
                     this.Controls.Add(wall);
@@ -229,32 +395,116 @@ namespace MazeImplementation1
             }
         }
 
+        private class Maze2 : PictureBox, Maze {
+            private Point startP;
+            private Maze1 maze;
+
+            public Size MazeSize {
+                get { return maze.MazeSize; }
+                set { maze.MazeSize = value; }
+            }
+
+            public Wall this[int row, int column] {
+                get { return maze[row, column]; }
+                set { maze[row, column] = value; }
+            }
+
+            public Maze2() {
+                this.Padding = new Padding(0);
+
+                clear();
+
+                this.MouseMove += mouseMove;
+                this.MouseDown += mouseDown;
+
+                maze = new Maze1();
+                maze.SizeChanged += sizeChanged;
+                maze.MouseDown += mouseDown;
+                maze.MouseMove += mouseMove;
+
+                Button clearButton = new Button();
+                clearButton.Text = "Clear";
+                clearButton.Click += clearClick;
+                clearButton.Margin = new Padding(20);
+                clearButton.Location = new Point(20, 20);
+
+                maze.Location = new Point(2 * clearButton.Location.X + clearButton.Size.Width, 2 * clearButton.Location.Y + clearButton.Size.Height);
+
+                this.Controls.Add(maze);
+                this.Controls.Add(clearButton);
+            }
+
+            private void mouseDown(object sender, MouseEventArgs e) {
+                Point offset = new Point();
+                if (sender == maze) {
+                    offset = maze.Location;
+                }
+
+                startP = new Point(e.X + offset.X, e.Y + offset.Y);
+            }
+
+            private void mouseMove(object sender, MouseEventArgs e) {
+                if (e.Button == MouseButtons.Left) {
+                    Point offset = new Point();
+                    if (sender == maze) {
+                        offset = maze.Location;
+                    }
+                    Point endP = new Point(e.X + offset.X, e.Y + offset.Y);
+                    Bitmap image = (Bitmap)this.Image;
+                    using (Graphics g = Graphics.FromImage(image)) {
+                        g.DrawLine(new Pen(Color.BlueViolet), startP, endP);
+                    }
+                    this.Image = image;
+                    startP = endP;
+                    this.Invalidate();
+                }
+            }
+
+            private void resize_image() {
+                if (this.Image.Width < this.Width || this.Image.Height < this.Height) {
+                    Bitmap image = new Bitmap(Math.Max(this.Image.Width, this.Width), Math.Max(this.Image.Height, this.Height));
+
+                    using (Graphics g = Graphics.FromImage(image)) {
+                        g.DrawImage(this.Image, 0, 0);
+                    }
+
+                    this.Image = image;
+                }
+            }
+
+            private void clear() {
+                this.Image = new Bitmap(this.Width, this.Height);
+            }
+
+            private void sizeChanged(object sender, EventArgs e) {
+                this.Size = new Size(maze.Location.X + maze.Size.Width, maze.Location.Y + maze.Size.Height);
+                resize_image();
+            }
+            private void clearClick(object sender, EventArgs e){
+                clear();
+            }
+        }
+
         public override Maze createMaze() { return new Maze1(); }
 
         public override Wall createWall(WallType type) {
-            if (type == WallType.Type2) return new Wall1T2();
-            //if (type == WallType.Type3) return new Wall1T3();
+            if (type == WallType.Type2) return new Wall2();
+            if (type == WallType.Type3) return new Wall3();
             return new Wall1();
         }
 
-        public override Door createDoor() {
-            return new Door1();
-        }
+        public override Door createDoor() { return new Door1(); }
 
         public override void drawMaze(Maze maze) {
             if (maze == null) throw new ArgumentNullException();
-            Maze1 my_maze = (maze as Maze1);
-            if (my_maze == null) throw new Exception("value is not Wall1 entity");
-
-            my_maze.Dock = DockStyle.Fill;
+            Control my_maze = (maze as Control);
+            if (my_maze == null) throw new Exception("value is not Controll entity");
 
             Form form = new Form();
             form.AutoSize = true;
             form.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             form.Controls.Add(my_maze);
 
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(form);
         }
     }
