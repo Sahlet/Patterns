@@ -317,7 +317,8 @@ namespace MazeImplementation1
             public Wall3() {
                 p1.Click += on_click;
                 p2.Click += on_click;
-                String PicturePath = @"D:\Книги\Прога\Даша\8 семестр\Patterns\AbstractFactory\MazeImplementation1\note.png";
+                //String PicturePath = @"D:\Книги\Прога\Даша\8 семестр\Patterns\AbstractFactory\MazeImplementation1\note.png";
+                String PicturePath = @"\\Mac\Home\Downloads\Patterns-master\AbstractFactory\MazeImplementation1\note.png";
 
                 pic1.Click += on_click;
                 pic2.Click += on_click;
@@ -443,10 +444,6 @@ namespace MazeImplementation1
             }
 
             private void mouseDown(object sender, MouseEventArgs e) {
-                if (clearButton.Parent == this) {
-                    int i = 0;
-                }
-
                 Control ctrl_sender = (sender as Control);
                 if (sender == null) return;
 
@@ -472,12 +469,12 @@ namespace MazeImplementation1
                     g.DrawLine(new Pen(Color.BlueViolet), startP, endP);
 
                     startP = endP;
-                    this.Invalidate();
+                    this.Refresh();
                 }
             }
 
             private void clear() {
-                this.CreateGraphics().Clear(this.BackColor);
+                this.Opacity = 0;
             }
 
             private void sizeChanged(object sender, EventArgs e) {
