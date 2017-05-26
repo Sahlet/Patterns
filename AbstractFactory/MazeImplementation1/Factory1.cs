@@ -126,6 +126,7 @@ namespace MazeImplementation1
             public Pen BorderPen = Pens.Black;
 
             protected override void OnPaint(PaintEventArgs e) {
+                
                 using (SolidBrush brush = new SolidBrush(BackColor)) e.Graphics.FillRectangle(brush, ClientRectangle);
                 e.Graphics.DrawRectangle(BorderPen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
             }
@@ -187,12 +188,41 @@ namespace MazeImplementation1
             }
         }
 
-        private class Wall1 : TranspCtrl, Wall {
+        private abstract class WallControl : TranspCtrl, Wall {
+            public Control to_clear;
+
+            public List<ControlWithBorder> wall_parts;
+
+            public WallControl() {
+                wall_parts = new List<ControlWithBorder>();
+            }
+
+            public abstract bool Vertical
+            {
+                get;
+                set;
+            }
+
+            public abstract MazeInterface.Door Door
+            {
+                get;
+                set;
+            }
+
+            public abstract WallType Type
+            {
+                get;
+            }
+        }
+
+        private class Wall1 : WallControl
+        {
+
             public static Size getWallSize() { return new Size(10, 44); }
             public static Size getDoorSize() { return new Size(12, 16); }
 
             private bool vertical;
-            public virtual bool Vertical {
+            public override bool Vertical {
                 get { return vertical; }
                 set {
                     if (vertical == value) return;
@@ -202,7 +232,8 @@ namespace MazeImplementation1
             }
 
             private Door1 door;
-            public MazeInterface.Door Door {
+            public override MazeInterface.Door Door
+            {
                 get { return door; }
                 set {
                     if (door == value) return;
@@ -230,11 +261,12 @@ namespace MazeImplementation1
             }
 
             protected WallType get_type() { return WallType.Default; }
-            public WallType Type {
+            public override WallType Type
+            {
                 get { return get_type(); }
             }
 
-            protected ControlWithBorder p1 = new ControlWithBorder(), p2 = new ControlWithBorder();
+            public ControlWithBorder p1 = new ControlWithBorder(), p2 = new ControlWithBorder();
 
             public Wall1() {
                 this.Size = new Size(getWallSize().Height, getWallSize().Height);
@@ -243,6 +275,10 @@ namespace MazeImplementation1
 
                 this.Controls.Add(p1);
                 this.Controls.Add(p2);
+
+                wall_parts.Add(p1);
+                wall_parts.Add(p2);
+
 
                 this.Opacity = 0;
 
@@ -278,6 +314,9 @@ namespace MazeImplementation1
                     Point p2Pos = new Point(p1Pos.X, this.Size.Height - wallSize.Height);
                     p2.Location = vertical ? p2Pos : new Point(p2Pos.Y, p2Pos.X);
                 }
+
+                Maze2 maze = to_clear as Maze2;
+                if (maze != null) maze.clear();
             }
         }
         private class Wall2 : Wall1 {
@@ -333,9 +372,121 @@ namespace MazeImplementation1
             }
         }
 
+        //--------------------------------------------------------------------------------------------
+        private class WallDecorator1 : WallControl, WallDecorator
+        {
+            private WallControl wall;
+            public WallControl get_wall() { return wall; }
+
+            private void resize() {
+                Size = wall.Size;
+            }
+            private void resize(object sender, EventArgs args) {
+                resize();
+            }
+
+            public WallDecorator1(WallControl wall) {
+                this.wall_parts = wall.wall_parts;
+                this.wall = wall;
+                wall.Location = new Point(0, 0);
+                this.Controls.Add(wall);
+                resize();
+                wall.SizeChanged += resize;
+
+                this.Opacity = 0;
+            }
+
+            public override bool Vertical
+            {
+                get { return wall.Vertical; }
+                set { wall.Vertical = value; }
+            }
+
+            public override MazeInterface.Door Door
+            {
+                get { return wall.Door; }
+                set { wall.Door = value; }
+            }
+
+            public override WallType Type
+            {
+                get { return wall.Type; }
+            }
+        }
+
+        private class WallSolidBorderDecorator1 : WallDecorator1, WallSolidBorderDecorator {
+            private ControlWithBorder p1;
+            public WallSolidBorderDecorator1(WallControl wall)
+                : base(wall)
+            {
+                if (this.wall_parts.Count == 0 || wall_parts[0] == null)
+                    throw new Exception("no ControlWithBorder in wall_parts");
+                p1 = wall_parts[0];
+                BorderColor = Color.Blue;
+            }
+
+            public Color BorderColor
+            {
+                get {
+                    return p1.BorderPen.Color;
+                }
+                set {
+                    foreach (ControlWithBorder p in wall_parts) {
+                        p.BorderPen = new Pen(value);
+                    }
+                    Maze2 maze = to_clear as Maze2;
+                    if (maze != null) maze.clear();
+                }
+            }
+        }
+        private class WallDashedBorderDecorator1 : WallDecorator1, WallDashedBorderDecorator {
+                        private ControlWithBorder p1;
+            public WallDashedBorderDecorator1(WallControl wall)
+                : base(wall)
+            {
+                if (this.wall_parts.Count == 0 || wall_parts[0] == null)
+                    throw new Exception("no ControlWithBorder in wall_parts");
+                p1 = wall_parts[0];
+                DashColor = Color.Yellow;
+            }
+
+            public Color DashColor
+            {
+                get {
+                    return p1.BorderPen.Color;
+                }
+                set {
+                    foreach (ControlWithBorder p in wall_parts) {
+                        p.BorderPen = new Pen(value);
+                        p.BorderPen.DashPattern = new float[] { 4.0F, 2.0F, 4.0F, 2.0F };
+                    }
+                    Maze2 maze = to_clear as Maze2;
+                    if (maze != null) maze.clear();
+                }
+            }
+        }
+        private class WallRotOnClickDecorator1 : WallDecorator1, WallRotOnClickDecorator {
+            private void changeVertical() {
+                Vertical = !Vertical;
+                Maze2 maze = to_clear as Maze2;
+                if (maze != null) maze.clear();
+            }
+            private void changeVertical(object sender, MouseEventArgs args) { changeVertical(); }
+
+            public WallRotOnClickDecorator1(WallControl wall)
+                : base(wall)
+            {
+                foreach (ControlWithBorder p in wall_parts)
+                {
+                    p.MouseClick += changeVertical;
+                }
+            }
+        }
+        //--------------------------------------------------------------------------------------------
+
         private class Maze1 : TranspCtrl, Maze {
             private System.Drawing.Size mazeSize;
-            private Wall1[,] walls;
+            private WallControl[,] walls;
 
             public static Point getPos(int row, int column) {
                 Point pos = new Point();
@@ -350,7 +501,7 @@ namespace MazeImplementation1
             public Maze1() {
                 this.Padding = new Padding(0);
                 mazeSize = new Size(0, 0);
-                walls = new Wall1[0, 0];
+                walls = new WallControl[0, 0];
                 this.Opacity = 0;
             }
 
@@ -360,7 +511,7 @@ namespace MazeImplementation1
                     if (mazeSize == value) return;
                     this.Controls.Clear();
                     mazeSize = value;
-                    walls = new Wall1[mazeSize.Width, mazeSize.Height];
+                    walls = new WallControl[mazeSize.Width, mazeSize.Height];
 
                     if (mazeSize.Width == 0 || mazeSize.Height == 0) {
                         Size = new Size(0, 0);
@@ -373,26 +524,29 @@ namespace MazeImplementation1
             }
 
             public virtual Wall this[int row, int column] {
-                get { return walls[row, column]; }
+                get { return walls[row, column] as Wall; }
                 set {
-                    Wall1 old_wall = walls[row, column];
+                    Wall old_wall = walls[row, column] as Wall;
 
                     if (old_wall == value) return;
 
                     if (value == null) {
-                        this.Controls.Remove(old_wall);
+                        this.Controls.Remove((old_wall as Control));
                         walls[row, column] = null;
                         return;
                     }
 
-                    Wall1 wall = (value as Wall1);
-                    if (wall == null) throw new Exception("value is not Wall1 entity");
+                    WallControl wall = (value as WallControl);
+                    if (wall == null) throw new Exception("value is not WallControl entity");
 
                     walls[row, column] = wall;
+                    
                     wall.Location = getPos(row, column);
 
-                    this.Controls.Remove(old_wall);
+                    this.Controls.Remove((old_wall as Control));
                     this.Controls.Add(wall);
+
+                    wall.to_clear = this;
                 }
             }
         }
@@ -474,7 +628,7 @@ namespace MazeImplementation1
                 }
             }
 
-            private void clear() {
+            public void clear() {
                 this.Opacity = 0;
             }
 
@@ -492,6 +646,41 @@ namespace MazeImplementation1
             if (type == WallType.Type2) return new Wall2();
             if (type == WallType.Type3) return new Wall3();
             return new Wall1();
+        }
+
+        private WallControl getWallControl(Wall value)
+        {
+            if (value == null) throw new NullReferenceException("value == null");
+            WallControl wall = (value as WallControl);
+            if (wall == null)
+                throw new Exception("value is not WallControl entity");
+            return wall;
+
+        }
+
+        public override WallSolidBorderDecorator createWallSolidBorderDecorator(Wall value)
+        {
+            try
+            {
+                return new WallSolidBorderDecorator1(getWallControl(value));
+            }
+            catch (Exception ex) { throw; }
+        }
+        public override WallDashedBorderDecorator createWallDashedBorderDecorator(Wall value)
+        {
+            try
+            {
+                return new WallDashedBorderDecorator1(getWallControl(value));
+            }
+            catch (Exception ex) { throw; }
+        }
+        public override WallRotOnClickDecorator createWallWallRotOnClickDecorator(Wall value)
+        {
+            try
+            {
+                return new WallRotOnClickDecorator1(getWallControl(value));
+            }
+            catch (Exception ex) { throw; }
         }
 
         public override Door createDoor() { return new Door1(); }

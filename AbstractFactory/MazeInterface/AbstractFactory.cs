@@ -34,6 +34,9 @@ namespace MazeInterface {
             wall.Door = createDoor(data.doorData);
             return wall;
         }
+        public abstract WallSolidBorderDecorator createWallSolidBorderDecorator(Wall wall);
+        public abstract WallDashedBorderDecorator createWallDashedBorderDecorator(Wall wall);
+        public abstract WallRotOnClickDecorator createWallWallRotOnClickDecorator(Wall wall);
         public Door createDoor(DoorData data) {
             if (data == null) return null;
             var door = createDoor();

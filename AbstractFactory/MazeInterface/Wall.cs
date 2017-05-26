@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -35,4 +36,21 @@ namespace MazeInterface {
         }
 
     }
+
+    interface WallDecorator : Wall { }
+    interface WallSolidBorderDecorator : WallDecorator {
+        Color BorderColor
+        {
+            get;
+            set;
+        }
+    }
+    interface WallDashedBorderDecorator : WallDecorator {
+        Color DashColor
+        {
+            get;
+            set;
+        }
+    }
+    interface WallRotOnClickDecorator : WallDecorator { }
 }

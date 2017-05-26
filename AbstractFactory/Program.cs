@@ -53,7 +53,17 @@ namespace AbstractFactoryLab {
 
             MazeData[] Mazes = { getMazeData1() };
 
-            factory.drawMaze(factory.createMaze(Mazes[0]));
+            var maze = factory.createMaze(Mazes[0]);
+
+            maze[0, 0] = factory.createWallWallRotOnClickDecorator(maze[0, 0]);
+            maze[2, 2] = factory.createWallDashedBorderDecorator(factory.createWallWallRotOnClickDecorator(maze[2, 2]));
+            maze[0, 1] = factory.createWallSolidBorderDecorator(maze[0, 1]);
+            maze[2, 3] = factory.createWallSolidBorderDecorator(maze[2, 3]);
+            maze[0, 2] = factory.createWallDashedBorderDecorator(maze[0, 2]);
+            maze[2, 4] = factory.createWallDashedBorderDecorator(maze[2, 4]);
+
+
+            factory.drawMaze(maze);
         }
     }
 }
